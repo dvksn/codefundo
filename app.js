@@ -43,7 +43,8 @@ bot.dialog('/', [
     function(session, results, next) {
     	var questions = {
     "List all events": {},
-    "Show events by date": {}
+    "Show events by date": {},
+    "Show events within next few days": {}
 };
 
     	builder.Prompts.choice(session ,"How can i help you today? ", questions, {listStyle: builder.ListStyle.button});
@@ -58,6 +59,10 @@ bot.dialog('/', [
     	{
     		session.beginDialog('/fetchByDate', session.userData.profile);
     	}
+      else if(results.response.entity== "Show events within next few days")
+      {
+        session.beginDialog('/fetchEventsNextFewDays', session.userData.profile);
+      }
     }
 ]);
 bot.dialog('/ensureProfile', [
@@ -81,8 +86,59 @@ bot.dialog('/ensureProfile', [
 bot.dialog('/fetchAllEvents', [
 	function (session, args, next) {
 		
-  	http.get(api_url +"events/search/"+ authkey, (res) => {
-  const statusCode = res.statusCode;
+  	http.get(api_url +"events/search/"+ authkey+"&location.address=delhi", (res) => {
+  
+    session.beginDialog('/url',res);
+ 
+	}).on('error', (e) => {
+  console.log(`Got error: ${e.message}`);
+	});
+	}
+]);
+
+bot.dialog('/fetchByDate', [
+	function (session, args, next) {
+	builder.Prompts.time(session, "Enter the date ");
+	 },
+	 function (session, results, next) {
+	  var time= (builder.EntityRecognizer.resolveTime([results.response])).toISOString().slice(0,19);
+    //session.send(api_url +"events/search/"+ authkey+"&start_date.range_start="+time+"&start_date.range_end="+time);
+	 	  	http.get(api_url +"events/search/"+ authkey+"&start_date.range_start="+time+"&start_date.range_end="+time+"&location.address=delhi", (res) => {
+
+          session.beginDialog('/url',res);
+	 }).on('error', (e) => {
+  console.log(`Got error: ${e.message}`);
+  });
+  }
+]);
+
+bot.dialog('/fetchEventsNextFewDays', [
+  function (session, args, next) {
+  builder.Prompts.number(session, "Enter no of days: ");
+   },
+   function (session, results, next) {
+    //results.response;
+    var no_day=results.response;
+    var date_now= new Date();// Date.now();
+    var date_now1= new Date();
+    date_now1.setDate(date_now.getDate()+no_day);
+    //session.send(date_now.toString());
+    var time= date_now.toISOString().slice(0,19);
+    var time1= date_now1.toISOString().slice(0,19);
+    //session.send(time);
+    //session.send(api_url +"events/search/"+ authkey+"&start_date.range_start="+time+"&start_date.range_end="+time1);
+       http.get(api_url +"events/search/"+ authkey+"&start_date.range_start="+time+"&start_date.range_end="+time1+"&location.address=delhi", (res) => {
+
+        session.beginDialog('/url',res);
+  }).on('error', (e) => {
+   console.log(`Got error: ${e.message}`);
+   });
+  }
+]);
+
+bot.dialog('/url', [
+    function (session, res, next) {
+        const statusCode = res.statusCode;
   const contentType = res.headers['content-type'];
 
   var error;
@@ -99,7 +155,7 @@ bot.dialog('/fetchAllEvents', [
     res.resume();
     
   }
-  var eventlist = [];
+    var eventlist = [];
   res.setEncoding('utf8');
   var  rawData = '';
   res.on('data', (chunk) => rawData += chunk);
@@ -108,8 +164,8 @@ bot.dialog('/fetchAllEvents', [
     try {
       var  parsedData = JSON.parse(rawData);
       // console.log(parsedData.events);
-      for (var i = parsedData.events.length - 1; i >= 0; i--) {
-      	eventlist.push(	parsedData.events[i].name.text);
+      for (var i =0 ; i < Math.min(parsedData.events.length,10) ; i++) {
+        eventlist.push( parsedData.events[i].name.text);
         session.send(eventlist);
 
       }
@@ -119,60 +175,11 @@ bot.dialog('/fetchAllEvents', [
       console.log(e.message);
     }
   });
-	}).on('error', (e) => {
-  console.log(`Got error: ${e.message}`);
-	});
-	}
-])
-bot.dialog('/fetchByDate', [
-	function (session, args, next) {
-	builder.Prompts.time(session, "Enter the date ");
-	
- 
-	 },
-	 function (session, results, next) {
-	 	// session.send("hi");
-	  session.send((builder.EntityRecognizer.resolveTime([results.response])).toString());
-	 	//  	http.get(api_url +"events/search/"+ authkey, (res) => {
- //  const statusCode = res.statusCode;
- //  const contentType = res.headers['content-type'];
+    }
+]);
 
- //  var error;
- //  if (statusCode !== 200) {
- //    error = new Error(`Request Failed.\n` +
- //                      `Status Code: ${statusCode}`);
- //  } else if (!/^application\/json/.test(contentType)) {
- //    error = new Error(`Invalid content-type.\n` +
- //                      `Expected application/json but received ${contentType}`);
- //  }
- //  if (error) {
- //    session.send(error.message);
- //    // consume response data to free up memory
- //    res.resume();
-    
- //  }
- //  var eventlist = [];
- //  res.setEncoding('utf8');
- //  var  rawData = '';
- //  res.on('data', (chunk) => rawData += chunk);
-
- //  res.on('end', () => {
- //    try {
- //      var  parsedData = JSON.parse(rawData);
- //      // console.log(parsedData.events);
- //      for (var i = parsedData.events.length - 1; i >= 0; i--) {
- //      	eventlist.push(	parsedData.events[i].name.text);
- //        session.send(eventlist);
-
- //      }
- //      console.log(eventlist);
-
- //    } catch (e) {
- //      console.log(e.message);
- //    }
- //  });
-	// }).on('error', (e) => {
- //  console.log(`Got error: ${e.message}`);
-	// });
-	 }
-])
+// bot.dialog('/getEventsName', [
+//     function (session, args, next) {
+       
+//     }
+// ]);
