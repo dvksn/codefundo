@@ -261,13 +261,21 @@ bot.dialog('/url', [
       if(parsedData.events.length==0)
       	session.send("Sorry! No events found.");
       for (var i =0 ; i < Math.min(parsedData.events.length,10) ; i++) {
-        eventlist.push( parsedData.events[i].name.text);
-        session.send(eventlist);
+      	var eventobject = {};
+      	eventobject.name = parsedData.events[i].name.text;
+      	eventobject.start = parsedData.events[i].start.local;
+      	// eventobject.venue = return_venue(parsedData.events[i].venue_id)
+      	console.log(eventobject);
+      	session.beginDialog('/card',eventobject );
 
       }
-      console.log(eventlist);
+      //console.log(parsedData.events[0])
 
-    } catch (e) {
+      // console.log(eventlist);
+
+    } 
+    catch (e)
+    {
       console.log(e.message);
     }
   });
@@ -282,4 +290,6 @@ bot.dialog('/url', [
        
 //     }
 // ]);
+
+
 
