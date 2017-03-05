@@ -266,9 +266,11 @@ bot.dialog('/url', [
       	eventobject.start = parsedData.events[i].start.local;
       	// eventobject.venue = return_venue(parsedData.events[i].venue_id)
       	console.log(eventobject);
-      	session.beginDialog('/card',eventobject );
+      	eventlist.push(eventobject);
 
       }
+            	session.beginDialog('/card',eventlist );
+
       //console.log(parsedData.events[0])
 
       // console.log(eventlist);
